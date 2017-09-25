@@ -1,0 +1,26 @@
+
+title: "Assignment 2 by Chinmay"
+output: 
+For the problem, let's assign people the variables. There are 3 groups to be made, with three, four and four people.  
+Let A= Alec, B = Chinmay, C= Mercy, D=Rishi, E=Rahul, F=Divya, G=Monalisa , H=Guisen, I=Zi, J=Kyle, K=Shivani
+The potential of each candidate when they became a part of any group is sum of the attributes they have provided. And it is same for all 3 groups. 
+Let XA1 = Alec working for group 1 
+    XA2 = Alec Working for group 2
+    XA3 = Alec working for group 3
+    XB1 = Chinmay Working for group 1
+    .
+    .
+    .
+    XK3 = Shivani Working for group 2
+Potential of Alec = 13.4, Chinmay= 10.2, Mercy=8.6, Rishi=13.2, Rahul=18, Divya=16.6, Monalisa=15.4, Guisen=16.8, Zi=12, Kyle=13.4, Shivani=14
+
+```{r}
+library(lpSolveAPI)
+z <- read.lp("assignment2.lp")
+z
+solve(z)
+get.objective(z)
+get.variables(z)
+```
+
+.
