@@ -1,0 +1,80 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Since it is given that any amount of stock can be stored, means supply is unlimited or there is no restriction on the supply.
+Let 
+S1= supply in month 1 which is purchased with no discount. 
+D1= Supply in month 1 with discount of $2
+L1= Leftover after the month 1 is over
+S2= supply in month 2 which is purchased with no discount. 
+D2= Supply in month 2 with discount of $2
+L2= Leftover after the month 2 is over
+S3= supply in month 3 which is purchased with no discount. 
+D3= Supply in month 3 with discount of $2
+L3= Leftover after the month 3 is over
+S4= supply in month 4 which is purchased with no discount. 
+D4= Supply in month 4 with discount of $2
+L4= Leftover after the month 1 is over which will be zero because no one will buy extra after the purpose is solved.
+So objective function is,
+Min: 12S1 + 14S2 + 16S3 + 18S4 + 10D1 + 12D2 + 14D3 + 16D4 + 2L1 +2L2 + 2L3;
+Now, demand in every month will be equal to the supply (With and without discount) + the leftover of previous month - Leftover of current month.
+DE1= Demand in month 1 = S1+ D1-L1=150
+DE2= Demand in month 2 = S2+ D2+L1-L2=200
+DE3= Demand in month 3 = S3+ D3+L2-L3=250
+DE4= Demand in month 4 = S4+D4+L3=150
+And since S are supplies without discount, 
+0 <= S1 <= 200;
+0 <= S2 <= 200;
+0 <= S3 <= 200;
+0 <= S4 <= 200;
+After 200, any number of products will cost $2 less. So, D values can be very large. Using Big M method,
+D1 - 1000J1=0;
+D2 - 1000J2=0;
+D3 - 1000J3=0;
+D4 - 1000J4=0;
+Where J = 1 or 0 based on whether the purchase in that specific month is more than 200 units. If the purchase is less than 200 units, J=0 and hence D=0.
+Now since J can be 1 only if we purchase more than 200 units in one month, we have constraints:
+S1 - 200J1 >=0;
+S2 - 200J2 >=0;
+S3 - 200J >=0;
+S4 - 200J4 >=0;
+So as defined previously, S cannot be more than 200, so if S=200, J=1, if S<200, J must be 0 and so D will not exist.
+
+Solving the problem on R via linear programming model, the values of constraints are:
+Objective function = $10200
+S1= supply in month 1 which is purchased with no discount= 200
+D1= Supply in month 1 with discount of $2=550
+L1= Leftover after the month 1 is over=600
+S2= supply in month 2 which is purchased with no discount=0
+D2= Supply in month 2 with discount of $2=0
+L2= Leftover after the month 2 is over=400
+S3= supply in month 3 which is purchased with no discount=0
+D3= Supply in month 3 with discount of $2=0
+L3= Leftover after the month 3 is over=150
+S4= supply in month 4 which is purchased with no discount=0
+D4= Supply in month 4 with discount of $2=0
+
+
+
+
+Sensitivity Analysis:
+  The solution obtained is optimum since there is no extra money spent on purchase from month 2 and all the stock used in months 2nd,3rd and 4th is bought in first month itself with discounted price.
+
+Now, even if the demand in any month increases, the solution remains same, i.e. we will buy the stock in month 1 itself and store as per the increased requirement in subsequent months. 
+
+Hence there won't be any solution change or in other words there won't be any shadow price, i.e. will be equal to zero. 
+
+
+```{r}
+library(lpSolveAPI)
+z <- read.lp("pk2.lp")
+z
+solve(z)
+get.objective(z)
+get.variables(z)
+get.sensitivity.objex(z)
+get.sensitivity.rhs(z)
+```
+
