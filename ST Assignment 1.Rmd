@@ -1,0 +1,116 @@
+---
+title: "Assignment 1"
+output: html_notebook
+---
+
+Answer 1:
+The study is descriptive in nature. No predictions are to be made here. Just a study of the impact of 9/11 attack had on travelling.
+
+Three pre-event time series can be studies here:
+
+
+```{r}
+X=read.csv("Documents/Rfiles/Sept11Travel.csv")
+library(forecast)
+#Study of trends before 9/11
+#Plot of Air before 9/11- Shows passengers travelling by air are increasing till August 2001
+ridershipAir.ts <- ts(X$Air.RPM..000s., 
+                   start = c(1991, 1), end = c(2001, 8), freq = 12)
+plot(ridershipAir.ts, xlab = "Time", ylab = "Air.RPM..000s", ylim = c(20000000, 70000000))
+
+
+#Plot of Train before 9/11- Shows passengers travelling by Rail are almost constant till 1996, then decreasing till #August 2001
+ridershipRail.ts <- ts(X$Rail.PM, 
+                   start = c(1991, 1), end = c(2001, 8), freq = 12)
+plot(ridershipRail.ts, xlab = "Time", ylab = "Rail.PM", ylim = c(300000000, 700000000))
+
+
+#Plot of Car before 9/11-Shows Increase till august 2011
+ridershipCar.ts <- ts(X$VMT..billions., 
+                   start = c(1991, 1), end = c(2001, 8), freq = 12)
+plot(ridershipCar.ts, xlab = "Time", ylab = "VMT..billions.", ylim = c(150, 270))
+```
+
+To study pre-event time series with more accuracy here the time series has been focused. For all three transportations, and during all years, the passengers are increasing till mid year and then decreasing till end of the year. The pattern follows in subsequent years. 
+
+```{r}
+#Better analysis of Air travel by zooming into the plot
+ridershipAir.ts.5yrs <- window(ridershipAir.ts, 1997, c(2001, 8))
+plot(ridershipAir.ts.5yrs, xlab = "Time", ylab = "Air.RPM..000s")
+ridershipAir.ts.5yrs1 <- window(ridershipAir.ts, 1997, c(1998, 1))
+plot(ridershipAir.ts.5yrs1, xlab = "Time", ylab = "Air.RPM..000s")
+
+#Better analysis of Train travel by zooming into the plot
+ridershipRail.ts.5yrs <- window(ridershipRail.ts, 1997, c(2001, 8))
+plot(ridershipRail.ts.5yrs, xlab = "Time", ylab = "Rail.PM")
+ridershipRail.ts.5yrs1 <- window(ridershipRail.ts, 1997, c(1998, 1))
+plot(ridershipRail.ts.5yrs1, xlab = "Time", ylab = "Rail.PM")
+
+#Better analysis of car travel by zooming into the plot
+ridershipCar.ts.5yrs <- window(ridershipCar.ts, 1997, c(2001, 8))
+plot(ridershipCar.ts.5yrs, xlab = "Time", ylab = "VMT..billions.")
+ridershipCar.ts.5yrs1 <- window(ridershipCar.ts, 1997, c(1998, 1))
+plot(ridershipCar.ts.5yrs1, xlab = "Time", ylab = "VMT..billions.")
+```
+
+Observing the patterns in travel using regression line.
+
+```{r}
+#Trends in Air Travel-Increasing till August 2001
+ridershipAir.lm <- forecast::tslm(ridershipAir.ts ~ trend + I(trend^2))
+plot(ridershipAir.ts, xlab = "Time", ylab = "Air.RPM..000s")
+lines(ridershipAir.lm$fitted, lwd =1)
+
+#Trends in Rail Travel-Decreasing till August 2001
+ridershipRail.lm <- forecast::tslm(ridershipRail.ts ~ trend + I(trend^2))
+plot(ridershipRail.ts, xlab = "Time", ylab = "Rail.PM")
+lines(ridershipRail.lm$fitted, lwd =1)
+
+#Trends in Car Travel-Increasing till August 2001
+ridershipCar.lm <- forecast::tslm(ridershipCar.ts ~ trend + I(trend^2))
+plot(ridershipCar.ts, xlab = "Time", ylab = "VMT..billions.")
+lines(ridershipCar.lm$fitted, lwd=1)
+
+```
+
+
+After 9/11 terrorist attack, the trends changed in following way.
+
+```{r}
+#Trends after 9/11
+
+#For Air- Decreases as immediate effect of 9/11 but later increases with slower rate
+
+ridershipAir1.ts <- ts(X$Air.RPM..000s., 
+                      start = c(2001, 9), end = c(2004, 4), freq = 12)
+plot(ridershipAir1.ts, xlab = "Time", ylab = "Air.RPM..000s", ylim = c(20000000, 70000000))
+ridershipAir1.lm <- forecast::tslm(ridershipAir1.ts ~ trend + I(trend^2))
+lines(ridershipAir1.lm$fitted, lwd=1)
+
+#For Rail- Increases and remails almost constant 
+
+ridershipRail1.ts <- ts(X$Rail.PM, 
+                       start = c(2001, 9), end = c(2004, 4), freq = 12)
+plot(ridershipRail1.ts, xlab = "Time", ylab = "Rail.PM", ylim = c(300000000, 700000000))
+ridershipRail1.lm <- forecast::tslm(ridershipRail1.ts ~ trend + I(trend^2))
+lines(ridershipRail1.lm$fitted, lwd=1)
+
+#For Car- Decreases as immediate effect of 9/11 but later increases
+
+ridershipCar1.ts <- ts(X$VMT..billions., 
+                        start = c(2001, 9), end = c(2004, 4), freq = 12)
+plot(ridershipCar1.ts, xlab = "Time", ylab = "VMT..billions", ylim = c(150, 270))
+ridershipCar1.lm <- forecast::tslm(ridershipCar1.ts ~ trend + I(trend^2))
+lines(ridershipCar1.lm$fitted, lwd=1)
+
+
+
+
+```
+
+From all above graphs, following conclusions are made:
+1. There is seasonality visible into the graph. Seasonality repeats over the years before 9/11.
+2. The trend is present in pre-9/11 graphs. For car and air travel it is constat increase and for train it is first constant and then decreasing.
+3. Trends changed as effect of 9/11 attack.
+4. Seasonality remained almost same after 9/11.
+
