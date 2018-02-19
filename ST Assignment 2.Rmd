@@ -1,0 +1,236 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+Q 1 Ans: 
+Following code generates the graph of Air travel before 9/11. It shows both seasonality and Trend. Trend is increasing. Seasonality present, with rise in travel every year till mid of year and then decline till December.
+```{r}
+library(dplyr)
+library(forecast)
+X= read.csv('Sept11Travel.csv')
+ridershipAir.ts <- ts(X$Air.RPM..000s., 
+                   start = c(1990, 1), end = c(2001, 8), freq = 12)
+plot(ridershipAir.ts, xlab = "Time", ylab = "Air.RPM..000s", ylim = c(20000000, 70000000))
+
+#Better analysis of Air travel by zooming into the plot
+ridershipAir.ts.5yrs <- window(ridershipAir.ts, 1997, c(2001, 8))
+plot(ridershipAir.ts.5yrs, xlab = "Time", ylab = "Air.RPM..000s")
+ridershipAir.ts.5yrs1 <- window(ridershipAir.ts, 1997, c(1998, 1))
+plot(ridershipAir.ts.5yrs1, xlab = "Time", ylab = "Air.RPM..000s")
+
+
+
+```
+Q 2 Ans:
+The seasonality adjusted graph means graph with seasonality removed from it. 
+      Seasonally adjusted series= Observed time series-seasonal component=Trend + Irregular
+So only Linear Regression Model(Option B) with Trend will be sufficient to forecst the series.
+
+
+Q 3 and Q 4 Ans: 
+The multiplicative seasonality adjustment is done by dividing each value of time series with seasonal index. For exampale here if July's Air.RPM is 150% of normal monthly value, divide it with 1.5 to get multiplicative time series.
+Following code does plot multiplicative seasonality adjusted graph.
+
+The outcome variables are trend and noise. The predictors will be previous time series data, or simply the time.
+
+Running the model we get the graphs as below. After the seasonality is suppressed, it is pretty evedent that September and October sales are not always worse than others and are pretty close to regression line, meaning the sales are average during these two months.Their coeffients are not giving any specific residual values so model is well fitting them, and no extra information can be extracted from them.
+Residual in January 1990 = |(Original Value)- (value by Regression line)| = |-39.1+35.15| =3.95 air revenue passenger miles.
+```{r}
+#Plots seasonally Adjusted Data for Air Travel- which gives trend and Noise
+library(Ecdat)
+ts_air = ts(ridershipAir.ts, frequency = 12, start=1990)
+ decompose_air = decompose(ts_air, "multiplicative")
+adjust_air = ts_air / decompose_air$seasonal
+plot(adjust_air, lwd = 2) #seasonally adjusted AIR travel plot
+adjust_air.lm <- tslm(adjust_air ~ trend) #Linear regression model for seasonally adjusted
+lines(adjust_air.lm$fitted, lwd = 2) #plots regression line for seasonally adjusted AIR travel plot
+summary(adjust_air.lm)
+
+#Plot coefficients of September and October
+library(seasonal)
+Y=seas(adjust_air)
+final(Y)
+plot(Y)# To get the coefficients of each month. October and September has no deviation from regression line estimates. 
+
+
+
+
+
+
+
+
+
+
+
+
+```
+```{r}
+ts_air = ts(ridershipAir.ts,frequency = 12)
+decompose_air = decompose(ts_air, "multiplicative")
+ 
+plot(as.ts(decompose_air$seasonal))#Plots the seasonality only
+plot(as.ts(decompose_air$trend)) #Plots the Trend only
+plot(as.ts(decompose_air$random)) #Plots the Noise only
+
+plot(decompose_air)
+trend_air = ma(ridershipAir.ts, order = 12, centre = T)
+plot(as.ts(timeserie_air))
+lines(trend_air)
+plot(as.ts(trend_air))
+```
+
+Q 5 Ans:
+Autocorrelation of Residuals of seasonality suppresed model
+```{r}
+# include trend as a predictor in tslm()
+adjust_air.trend <- tslm(adjust_air ~ trend)
+summary(adjust_air.trend)
+Acf(adjust_air.trend$residuals, lag.max = 12, main="")
+#Let us also display partial autocorrelation
+Pacf(adjust_air.trend$residuals, lag.max = 12, main="")
+```
+Autocorrelation of NON seasonality suppressed model is shown below. From the autocorrelation graph we found if there  any autocorrelation in any of the residuals.   From this graph it is seen that ACF grapth is stationary and decaying exponentially (till lag 8) and within the boundaries. This shows steady time series. Afrer lag 8, it shows some spikes, not that significant on negative side, showing there is a change in seasonality.
+In this perticular case, ACF is not that significant, giving time series to be stationary. If there is any oscillation found in ACF, that indicates seasonal series, with spikes indicating the correlation between the two seasons(like April 1991 and April 1992). 
+```{r}
+# The model is designed using trend and seasonality. We can also use quadratic trend.
+ridershipAir.ts.season<- tslm(ridershipAir.ts ~ trend+season)
+summary(ridershipAir.ts.season)
+Acf(ridershipAir.ts.season$residuals, lag.max = 12, main="")
+#Let us also display partial autocorrelation
+Pacf(ridershipAir.ts.season$residuals, lag.max = 12, main="")
+
+#Using Quadratic Trend
+ridershipAir.ts.season<- tslm(ridershipAir.ts ~ trend+I(trend^2)+season)
+summary(ridershipAir.ts.season)
+Acf(ridershipAir.ts.season$residuals, lag.max = 12, main="")
+#Let us also display partial autocorrelation
+Pacf(ridershipAir.ts.season$residuals, lag.max = 12, main="")
+```
+
+
+Q 6 Ans:
+The linear regression model with additive seasonality with trend is generated. 
+For Air Travel:
+Post event predictions are also shown in RED. Actual data is in the normal lines. After 9/11, all the prdictions went wrong and there were sharp fall in customers.
+
+```{r}
+#Part 1 of question 6: Generating LINEAR REGRESSION models of pre 9/11 Air, Rail and Car travel data. Quadratic trend is used in Rail only, and linear trend is used in both car and air.
+
+#For Air:
+#Trends in Air Travel-Increasing till August 2001
+ridershipAir.lm <- forecast::tslm(ridershipAir.ts ~ trend )
+plot(ridershipAir.ts, xlab = "Time", ylab = "Air.RPM..000s")
+lines(ridershipAir.lm$fitted, lwd =1)
+
+#Trends in Rail Travel-Decreasing till August 2001
+ridershipRail.ts <- ts(X$Rail.PM, 
+                   start = c(1991, 1), end = c(2001, 8), freq = 12)
+ridershipRail.lm <- forecast::tslm(ridershipRail.ts ~ trend + I(trend^2))
+plot(ridershipRail.ts, xlab = "Time", ylab = "Rail.PM")
+lines(ridershipRail.lm$fitted, lwd =1)
+
+#Trends in Car Travel-Increasing till August 2001
+ridershipCar.ts <- ts(X$VMT..billions., 
+                   start = c(1991, 1), end = c(2001, 8), freq = 12)
+ridershipCar.lm <- forecast::tslm(ridershipCar.ts ~ trend )
+plot(ridershipCar.ts, xlab = "Time", ylab = "VMT..billions.")
+lines(ridershipCar.lm$fitted, lwd=1)
+
+
+
+
+#Now forcasting the future of Air, Train and Car Travel post 9/11. The red color graph shows predicted values and the black color thin plot shows actual graph. 
+
+#For Air Travel- Post 9/11, the forcast shows increase in travel as per previous trend but it has fallen sharply. Predictions went wrong. 
+airdata.ts <- ts(X$Air.RPM..000s., 
+    start = c(1990, 1), end = c(2004, 3), freq = 12)
+nValid <-32
+nTrain <- length(airdata.ts) - nValid
+# partition the data
+
+airpredata.ts <- window(airdata.ts, start = c(1991, 1), end = c(2001,8))
+airpostdata.ts <- window(airdata.ts, start = c(1991, nTrain + 1),
+                   end = c(1991, nTrain + nValid))
+
+naive.pred <- forecast::naive(airpredata.ts, h = nValid)
+snaive.pred <- forecast::snaive(airpredata.ts, h = nValid)
+
+plot(airdata.ts,  ylab = "Air Travel Custmers", xlab = "Year", bty = "l", 
+    xaxt = "n", main = "") 
+axis(1, at = seq(1990, 2004, 4), labels = format(seq(1990, 2004, 4)))
+lines(naive.pred$mean, lwd = 2, col = "blue", lty = 1)
+lines(snaive.pred$mean, lwd = 2, col = "red", lty = 1)
+
+lines(c(2001.75 - 3, 2004.75 - 3), c(0, 3500)) 
+lines(c(2001.75, 2001.75), c(0, 3500))
+text(1990.25, 2500, "Training")
+text(2001.75, 2500, "Validation")
+text(2004.25, 2500, "Future")
+
+
+#For Rail Travel-Forcasts are almost accurate. There is no decrease in number of passengers travelling via train.
+Raildata.ts <- ts(X$Rail.PM, 
+    start = c(1990, 1), end = c(2004, 3), freq = 12)
+nValid <-32
+nTrain <- length(airdata.ts) - nValid
+# partition the data
+
+Railpredata.ts <- window(Raildata.ts, start = c(1991, 1), end = c(2001,8))
+Railpostdata.ts <- window(Raildata.ts, start = c(1991, nTrain + 1),
+                   end = c(1991, nTrain + nValid))
+
+naive.pred <- forecast::naive(Railpredata.ts, h = nValid)
+snaive.pred <- forecast::snaive(Railpredata.ts, h = nValid)
+
+plot(Raildata.ts,  ylab = "Rail Travel Custmers", xlab = "Year", bty = "l", 
+    xaxt = "n", main = "") 
+axis(1, at = seq(1990, 2004, 4), labels = format(seq(1990, 2004, 4)))
+lines(naive.pred$mean, lwd = 2, col = "blue", lty = 1)
+lines(snaive.pred$mean, lwd = 2, col = "red", lty = 1)
+
+lines(c(2001.75 - 3, 2004.75 - 3), c(0, 3500)) 
+lines(c(2001.75, 2001.75), c(0, 3500))
+text(1990.25, 2500, "Training")
+text(2001.75, 2500, "Validation")
+text(2004.25, 2500, "Future")
+
+
+#For Car Travel- Increase in car travel is observed during the seasons than forcasted value. So impact of 9/11 was like the people were preferring private vehicles rather than public transport after 9/11 attack.
+Cardata.ts <- ts(X$VMT..billions., 
+    start = c(1990, 1), end = c(2004, 3), freq = 12)
+nValid <-32
+nTrain <- length(Cardata.ts) - nValid
+# partition the data
+
+Carpredata.ts <- window(Cardata.ts, start = c(1991, 1), end = c(2001,8))
+Carpostdata.ts <- window(Cardata.ts, start = c(1991, nTrain + 1),
+                   end = c(1991, nTrain + nValid))
+
+naive.pred <- forecast::naive(Carpredata.ts, h = nValid)
+snaive.pred <- forecast::snaive(Carpredata.ts, h = nValid)
+
+plot(Cardata.ts,  ylab = "Car Travel Custmers", xlab = "Year", bty = "l", 
+    xaxt = "n", main = "") 
+axis(1, at = seq(1990, 2004, 4), labels = format(seq(1990, 2004, 4)))
+lines(naive.pred$mean, lwd = 2, col = "blue", lty = 1)
+lines(snaive.pred$mean, lwd = 2, col = "red", lty = 1)
+
+#lines(c(2001.75 - 3, 2004.75 - 3), c(0, 3500)) 
+lines(c(2001.75, 2001.75), c(0, 3500))
+text(1990.25, 2500, "Training")
+text(2001.75, 2500, "Validation")
+text(2004.25, 2500, "Future")
+
+
+
+
+
+
+```
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
