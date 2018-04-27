@@ -1,0 +1,230 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+Q1. K Means clustering for identifying clusters of households based on variables. Let us check first number of clusters with all variables. 
+  Here after checking, best number of clusters are 4 when all variables are used. 
+
+```{r}
+#Check best Number of clusters for all the data
+library(NbClust)
+library(caret)
+set.seed(1234)
+X=read.csv('BathSoap.csv')
+#Clean data
+X[] <- lapply(X, gsub, pattern='%', replacement='')
+X[] <- lapply(X, type.convert)
+summary(X)
+devAskNewPage(ask=T)
+MI=X$Member.id
+
+#######################################DATA CLEANING#######################################
+#remove duplicated columns
+X<-X[,!duplicated(as.list(X))]
+dim(X)
+
+#X$brandL=apply
+#Treating missing values
+library(caret)
+Preprocessed<-preProcess(X,method = "medianImpute")
+X<-predict(Preprocessed,X)
+
+
+#Create a new variable named brand loyatly
+#For brand loyalty, as given in the problem, a consumer who spends 90% of his or her purchase money on one brand is more loyal than a consumer who spends more equally among several brands. The brand are given by Br.cd attributes. If consumer is loyal to any of these, he is loyal customer. So create a brand loyalty based on max of these brands. For ex, if customer is spending 90% on Br.cd.57.100, he is a loyal customer. If customer is spending 30% on Br.cd.57.100 and also some money on some other brand, he is not loyal to any of the brands. Now, for every customer max(all brands) is calulated and it is stored in one variable. That shows how much customer is loyal to one brand.
+
+X$BrandLoyalty=X$Max.Br.cd.
+X=subset(X,select=-c(23:31))
+
+#Store this dataset to one variable so denormalize later
+Z=X
+#Normalize the data
+normalize1=function(x){(x-min(x))/(max(x)-min(x))}
+X=lapply(X,normalize1)
+X<-as.data.frame(X)
+X$Member.id=MI
+
+#Just check how many clusters can be there when all of variables are used
+nc <- NbClust(data = X,distance = "euclidean", min.nc=2,max.nc=7,method="kmeans",index = "all", alphaBeale = 0.1) # Best number of clusters  is 4
+table(nc$Best.n[1,])
+
+
+
+
+
+
+```
+a. Variables describing purchasing behaviour:
+Now we need to cluster data based on variables that describe the purchase behaviour and brand loyalty. Not all attributes are important in identifying purchase behaviour. First, the data is filtered to get only those variables which are important in identifying purchase behaviour and then k means clustering is applied on that data.
+```{r}
+X1=X[,c(5,6,14,15,18:22,24:30,39)] #Based on these variables only the clusters are gonna made
+#Apply k means clustering for this data
+nc <- NbClust(data = X1,distance = "euclidean", min.nc=2,max.nc=5,method="kmeans",index = "all", alphaBeale = 0.1) # Best number of clusters  is 3
+
+barplot(table(nc$Best.n[1,]),
+        xlab="Number of Clusters", ylab="Number of criteria",
+        main = "Number of clusters chosen by 9 Criteria")
+
+#Since best number of clusters are 2, 
+set.seed(1234)
+fit.km1 <- kmeans(X1,3,nstart=25)
+fit.km1
+barplot(table(fit.km1$cluster),
+        xlab="Number of Clusters", ylab="Cluster Size",
+        main = "Number of clusters chosen by 9 Criteria")
+
+fit.km1$cluster #Shows which person is in which cluster
+
+
+```
+
+Clusters based on Basis for purchase
+```{r}
+X2=X[,c(2:5,6,7,9,11,16,20,39)] #Based on these variables only the clusters are gonna made
+#Apply k means clustering for this data
+nc <- NbClust(data = X2,distance = "euclidean", min.nc=2,max.nc=5,method="kmeans",index = "all", alphaBeale = 0.1) # Best number of clusters  is 3
+
+barplot(table(nc$Best.n[1,]),
+        xlab="Number of Clusters", ylab="Number of criteria",
+        main = "Number of clusters chosen by 16 Criteria")
+
+#Since best number of clusters are 3, 
+set.seed(1234)
+fit.km2 <- kmeans(X2,3,nstart=25)
+fit.km2
+barplot(table(fit.km2$cluster),
+        xlab="Number of Clusters", ylab="Cluster Size",
+        main = "Number of clusters chosen by 16 Criteria")
+
+fit.km2$cluster #Shows which person is in which cluster
+
+```
+
+Based on both purchase behaviour and basis of purchase
+```{r}
+#Get Both the variables
+X3=cbind(X1,X2)
+X3<-X3[,!duplicated(as.list(X3))]
+
+nc <- NbClust(data = X3,distance = "euclidean", min.nc=2,max.nc=5,method="kmeans",index = "all", alphaBeale = 0.1) # Best number of clusters  is 4
+
+barplot(table(nc$Best.n[1,]),
+        xlab="Number of Clusters", ylab="Number of criteria",
+        main = "Number of clusters chosen by 12 Criteria")
+
+#Since best number of clusters are 4, 
+set.seed(1234)
+fit.km3 <- kmeans(X3,4,nstart=25)
+fit.km3
+barplot(table(fit.km3$cluster),
+        xlab="Number of Clusters", ylab="Cluster Size",
+        main = "Number of clusters chosen by 12 Criteria")
+
+fit.km3$cluster #Shows which person is in which cluster
+
+
+
+
+```
+Q.2: Which cluster is better
+To do so, let us analyse the clusters. The two criterias which may show which clustering is better are:
+1. The lesser the diameter of the cluster, the better it is, because it shows the cluster is not scattered, and the elements of the cluster have same properties.
+2. The more separated the clusters are, better the method, because it shows better clustering capacity with appropriate characteristics. (Separating distance between their centroids).
+
+Here we created 3 clusters based on some requirements. Different attributes were selected each time. When original data is segmented into these clusters, different solutions will be formed. Which is better one is alanysed below. Based on results, first clustering method seems better than other two.
+
+After finding which cluster is best, it is further studied in question 3 to find out properties of customers clustered. 
+For the comments regarding brand loyalty and basis of purchase, see last part of question 3.
+```{r}
+library(ggplot2)
+library(factoextra)
+library(fpc)
+
+
+#Let us compare, which clustering method is good-less the average diameter and more average distance between clusters
+dd <- dist(X, method ="euclidean")
+plotcluster(X, fit.km1$cluster)#Visualize the cluster
+Y1=cluster.stats(dd , fit.km1$cluster) 
+mean(Y1$diameter)
+mean(Y1$separation)
+
+
+Y2=cluster.stats(dd , fit.km2$cluster)
+plotcluster(X, fit.km2$cluster)
+mean(Y2$diameter) 
+mean(Y2$separation) 
+
+
+
+#less scattered, far from each other clusters
+Y3=cluster.stats(dd , fit.km3$cluster)
+plotcluster(X, fit.km3$cluster)
+mean(Y3$diameter)
+mean(Y3$separation)
+
+#Based on criteria , 3rd clustering method is better than other two.
+
+
+
+```
+
+Q3. Now let us separate (Classify) the data into these segments. Which means identify which customer falls into which cluster. Customer is identified by Member id.
+```{r}
+out1 <- cbind(X, ClusterNumber=fit.km3$cluster)
+out1
+#Denormalize Data
+minvec <- sapply(Z,min)
+maxvec <- sapply(Z,max)
+denormalize <- function(x,minval,maxval) {
+    x*(maxval-minval) + minval
+}
+out1=as.data.frame(Map(denormalize,out1,minvec,maxvec))
+
+out1$Member.id=Z$Member.id
+out1$ClusterNumber=fit.km3$cluster
+
+#Let us see what clusters say about relation between Brand Loyalty and People
+Cluster1=subset(out1,ClusterNumber==1) #highest brand loyalty
+Cluster1[,c(1,2,4,5,6,7,11,39,40)] #Select the variables we need to study in cluster 1 
+mean(Cluster1$BrandLoyalty)#77.43-highest
+nrow(Cluster1$AGE)
+
+
+
+
+
+Cluster2=subset(out1,ClusterNumber==2) #Average brand loyalty
+Cluster2[,c(1,2,4,5,6,7,11,39,40)] #Select the variables we need to study in cluster 1 
+mean(Cluster2$BrandLoyalty)#33.70
+mean(Cluster2$AGE)
+
+
+Cluster3=subset(out1,ClusterNumber==3) # Poor brand loyalty
+Cluster3[,c(1,2,4,5,6,7,11,39,40)] #Select the variables we need to study in cluster 1 
+mean(Cluster3$BrandLoyalty)#29.37
+mean(Cluster3$AGE)
+
+
+Cluster4=subset(out1,ClusterNumber==4) #Average brand loyalty
+Cluster4[,c(1,2,4,5,6,7,11,39,40)] 
+mean(Cluster4$BrandLoyalty)#44.23
+mean(Cluster4$AGE)
+
+
+
+#Know what is causing brand loyalty
+#Brand loyalty depends primarilty on Age.  More the age, more the loyalty. More the age more the loyalty. Company should focus on aged people because they are potential customers who will stick to their brand.
+#About demographics, from clustering it is found that people with their native language 10 tend to be more loyal than the people with native language 17. There is no relation of socio-economic class of person with their loyalty to perticular brand.
+```
+
+
+
+Q.3 Model which will assign a person into perticular cluster. Only those attributes which are used to make cluster are considered to place a person into perticular cluster. 
+```{r}
+#Subset the data and get few member.id. These are considered as new members to company. Then apply the logic via which the clusters are made and find out which person is in which cluster.
+library(FNN)
+X4=X3[1:30,]#Let us check for these 
+(pred.knn <- get.knnx(fit.km3$center, X4, 1)$nn.index[,1])
+
+```
+
